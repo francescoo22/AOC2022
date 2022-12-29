@@ -1,69 +1,99 @@
-def solve(p_solved, p_unsolved, _root)
-  while p_solved[_root].nil?
-    new_solved = {}
-    p_solved.each do |key, value|
-      p_unsolved.each do |key2, value2|
-        value2[0] = value if value2[0] == key
-        value2[2] = value if value2[2] == key
-        next unless value2[0].is_a?(Integer) && value2[2].is_a?(Integer)
-
-        new_solved[key2] = value2[0] + value2[2] if value2[1] == '+'
-        new_solved[key2] = value2[0] - value2[2] if value2[1] == '-'
-        new_solved[key2] = value2[0] * value2[2] if value2[1] == '*'
-        new_solved[key2] = value2[0] / value2[2] if value2[1] == '/'
-        p_unsolved.delete(key2)
-      end
-    end
-    p_solved = p_solved.merge(new_solved)
-    break if new_solved.empty?
-  end
-  p_solved
-end
+# frozen_string_literal: true
 
 file_path = 'input.txt'
 file = File.open(file_path)
-data = file.read.split("\n")
+data = file.read
+map = data.split("\n\n")[0].split("\n")
+path = data.split("\n\n")[1]
 
-solved = {}
-unsolved = {}
+numbers = path.split(/[RL]/).map(&:to_i)
 
-data.each do |line|
-  line = line.split(' ')
-  key = line[0].tr(':', '')
-  if key == 'humn'
-    unsolved[key] = ['xxxx', '+', 'yyyy']
-  else
-    solved[key] = line[1].to_i if line.size == 2
-    unsolved[key] = line[1..3] if line.size == 4
+moves = path.split(/\d+/).filter { |move| move != '' }
+
+directions = [[0, 1], [1, 0], [0, -1], [-1, 0]]
+current_direction = 0
+
+current_position = []
+
+map[0].each_char.with_index do |char, index|
+  if char == '.'
+    current_position = [0, index]
+    break
   end
 end
 
-solve(solved, unsolved, 'root')
-puts solved
-
-root = unsolved['root']
-if root[0].is_a?(Integer)
-  solved = { root[2] => root[0] }
-  start = root[2]
-else
-  solved = { root[0] => root[2] }
-  start = root[0]
+max_row = 0
+map.each do |row|
+  max_row = [max_row, row.length].max
 end
 
-new_unsolved = {}
-opposite = { '+' => '-', '-' => '+', '*' => '/', '/' => '*' }
-unsolved.each do |key, value|
-  next if key == 'humn'
+map.each do |row|
+  row << ' ' * (max_row - row.length)
+end
 
-  if value[0].is_a?(Integer)
-    new_unsolved[value[2]] = [key, opposite[value[1]], value[0]] if value[1] == '+' || value[1] == '*'
-    new_unsolved[value[2]] = [value[0], value[1], key] if value[1] == '-' || value[1] == '/'
-  else
-    new_unsolved[value[0]] = [key, opposite[value[1]], value[2]]
+width = map[0].length
+height = map.length
+
+edges = {}
+
+(50..99).each do |y|
+  edges[[y, 99, '>']] = [49, y + 50, '^']
+  edges[[49, y + 50, 'v']] = [y, 99, '<']
+end
+
+(150..199).each do |y|
+  edges[[y, 49, '>']] = [149, y - 100, '^']
+  edges[[149, y - 100, 'v']] = [y, 49, '<']
+
+  edges[[y, 0, '<']] = [0, y - 100, 'v']
+  edges[[0, y - 100, '^']] = [y, 0, '>']
+end
+
+(0..49).each do |y|
+  edges[[100, y, '^']] = [y + 50, 50, '>']
+  edges[[y + 50, 50, '<']] = [100, y, 'v']
+
+  edges[[y, 149, '>']] = [149 - y, 99, '<']
+  edges[[149 - y, 99, '>']] = [y, 149, '<']
+
+  edges[[y, 50, '<']] = [149 - y, 0, '>']
+  edges[[149 - y, 0, '<']] = [y, 50, '>']
+end
+
+(100..149).each do |y|
+  edges[[0, y, '^']] = [199, y - 100, '^']
+  edges[[199, y - 100, 'v']] = [0, y, 'v']
+end
+
+dir_to_char = { [0, 1] => '>', [1, 0] => 'v', [0, -1] => '<', [-1, 0] => '^' }
+char_to_int = { '>' => 0, 'v' => 1, '<' => 2, '^' => 3 }
+
+numbers.each_with_index do |number, index|
+  i = 0
+  while i < number
+    direction = directions[current_direction]
+    next_position = current_position
+
+    if edges[[current_position[0], current_position[1], dir_to_char[direction]]].nil?
+      next_position = [(next_position[0] + direction[0]) % height, (next_position[1] + direction[1]) % width]
+    else
+      edge = edges[[current_position[0], current_position[1], dir_to_char[direction]]]
+      next_position = [edge[0], edge[1]]
+      current_direction = char_to_int[edge[2]] unless map[next_position[0]][next_position[1]] == '#'
+    end
+
+    break if map[next_position[0]][next_position[1]] == '#'
+
+    current_position = next_position
+    i += 1
   end
+  current_direction = (current_direction + 1) % 4 if moves[index] == 'R'
+  current_direction = (current_direction - 1) % 4 if moves[index] == 'L'
 end
 
-new_unsolved.delete(start)
-solved = solve(solved, new_unsolved, 'humn')
+puts "final position #{current_position}"
+final_row = current_position[0] + 1
+final_column = current_position[1] + 1
 
-puts solved['humn']
+password = 1000 * final_row + 4 * final_column + current_direction
+puts "password: #{password}"

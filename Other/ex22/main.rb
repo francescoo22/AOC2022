@@ -1,33 +1,60 @@
 file_path = 'input.txt'
 file = File.open(file_path)
-data = file.read.split("\n")
+data = file.read
+map = data.split("\n\n")[0].split("\n")
+path = data.split("\n\n")[1]
 
-solved = {}
-unsolved = {}
+numbers = path.split(/[RL]/).map(&:to_i)
 
-data.each do |line|
-  line = line.split(' ')
-  key = line[0].tr(':', '')
-  solved[key] = line[1].to_i if line.size == 2
-  unsolved[key] = line[1..3] if line.size == 4
-end
+moves = path.split(/\d+/).filter { |move| move != '' }
 
-while solved['root'].nil?
-  new_solved = {}
-  solved.each do |key, value|
-    unsolved.each do |key2, value2|
-      value2[0] = value if value2[0] == key
-      value2[2] = value if value2[2] == key
-      next unless value2[0].is_a?(Integer) && value2[2].is_a?(Integer)
+directions = [[0, 1], [1, 0], [0, -1], [-1, 0]]
+current_direction = 0
 
-      new_solved[key2] = value2[0] + value2[2] if value2[1] == '+'
-      new_solved[key2] = value2[0] - value2[2] if value2[1] == '-'
-      new_solved[key2] = value2[0] * value2[2] if value2[1] == '*'
-      new_solved[key2] = value2[0] / value2[2] if value2[1] == '/'
-      unsolved.delete(key2)
-    end
+current_position = []
+
+map[0].each_char.with_index do |char, index|
+  if char == '.'
+    current_position = [0, index]
+    break
   end
-  solved = new_solved
 end
 
-puts solved['root']
+max_row = 0
+map.each do |row|
+  max_row = [max_row, row.length].max
+end
+
+map.each do |row|
+  row << ' ' * (max_row - row.length)
+end
+
+width = map[0].length
+height = map.length
+
+numbers.each_with_index do |number, index|
+  i = 0
+  while i < number
+    puts current_position.to_s
+    direction = directions[current_direction]
+    next_position = current_position
+    loop do
+      next_position = [(next_position[0] + direction[0]) % height, (next_position[1] + direction[1]) % width]
+      break unless map[next_position[0]][next_position[1]] == ' '
+    end
+
+    break if map[next_position[0]][next_position[1]] == '#'
+
+    current_position = next_position
+    i += 1
+  end
+  current_direction = (current_direction + 1) % 4 if moves[index] == 'R'
+  current_direction = (current_direction - 1) % 4 if moves[index] == 'L'
+end
+
+puts "final position #{current_position}"
+final_row = current_position[0] + 1
+final_column = current_position[1] + 1
+
+password = 1000 * final_row + 4 * final_column + current_direction
+puts "password: #{password}"
