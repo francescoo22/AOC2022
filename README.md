@@ -20,5 +20,5 @@ Day | Language | Part 1 | Part 2
 10 | ![Elixir](https://skillicons.dev/icons?i=elixir) | &check; | &check;
 11 | ![Julia](https://skillicons.dev/icons?i=julia) | &check; | &check;
 12 | ![Dart](https://skillicons.dev/icons?i=dart) | &check; | &check;
-13 | ![Rust](https://skillicons.dev/icons?i=rust) | &check; | &check;
+<!-- 13 | ![Rust](https://skillicons.dev/icons?i=rust) | &check; | &check; -->
 
